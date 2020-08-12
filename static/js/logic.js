@@ -14,9 +14,9 @@ L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_toke
   accessToken: API_KEY
 }).addTo(myMap);
 
-// Step 3: Store the url for the eartquake dataset chosen as a variable
+// Step 3: Store the url for the earthquake dataset chosen as a variable
 //============================================================
-var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson";
+var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson";
 
 // Step 4: Perform a GET request to the query URL
 //============================================================
@@ -26,64 +26,70 @@ d3.json(queryUrl, function(data) {
 
 function createFeatures(earthquakeData) {
   console.log(earthquakeData);
+
 // Step 5: create a geoJSON layer
 //============================================================
   L.geoJSON(earthquakeData, {
+    pointToLayer: function(feature, coordinates) {
+      return L.circleMarker(coordinates);
+    },
+    style: circleStyle,
     onEachFeature: function onEachFeature(feature, layer) {
       layer.bindPopup("<h3>" + feature.properties.place +
         "</h3><hr>Magnitude: "+ feature.properties.mag +
         "</h3><hr><p>" + new Date(feature.properties.time) + "</p>");
     }
-  });
+  }).addTo(myMap);
 
-
-  // Step 6: add circle markers basing the size and color on the magnitude (use world cup exercise)
-  //============================================================
-  for(var i = 0; i < earthquakeData.length; i++) {
-    var color = "";
-    console.log(earthquakeData[i].properties.mag);
-    var properties = earthquakeData[i].properties;
-    var mag = properties.mag;
-
-    console.log(earthquakeData[i].geometry.coordinates);
-    var geometry = earthquakeData[i].geometry;
-    var coordinates = geometry.coordinates;
-
+  function circleStyle(feature) {
+    return {
+      color: getColor(feature.properties.mag),
+      radius: feature.properties.mag * 4
+    }
+  }
+  function getColor (mag) {
+    var color = ""
     if (mag >= 5.0) {
-      color = "orange red";
-    }
-    else if (mag >= 4.0) {
-      color = "orange";
-    }
-    else if (mag >= 3.0) {
-      color = "yellow orange";
-    }
-    else if (mag >= 2.0) {
-      color = "yellow";
-    }
-    else if (mag >= 1.0) {
-      color = "yellow green";
-    }
-    else {
-      color = "green";
-    }
-    
-    L.circle(coordinates, {
-      fillOpacity: 0.75,
-      color: "white",
-      fillColor: color,
-      // Adjust radius
-      radius: mag
-    // }).bindPopup("<h1>" + properties.place + "</h1> <hr> <h3>" + mag + "</h3> <hr> <h3>" + properties.time + "</h3>").addTo(myMap);
-    }).addTo(myMap);
-  };
-// need to figure out how to add this to my map - I'm creating them but not adding them.
+          color = "red";
+        }
+        else if (mag >= 4.0) {
+          color = "orange";
+        }
+        else if (mag >= 3.0) {
+          color = "yellow";
+        }
+        else if (mag >= 2.0) {
+          color = "green";
+        }
+        else if (mag >= 1.0) {
+          color = "blue";
+        }
+        else {
+          color = "purple";
+        } 
+        return color
+  }
 
-
- 
-  // Step 8: create a legend providing context for the map data
+// Step 8: create a legend providing context for the map data
 //============================================================
+var legend = L.control({position: 'bottomright'});
 
-  // createMap(earthquakes);
+legend.onAdd = function (map) {
+
+  var div = L.DomUtil.create('div', 'info legend'),
+      mag = ["0", "1", "2", "3", "4", "5"],
+      color = [];
+
+  for (var i = 0; i < mag.length; i++) {
+    div.innerHTML +=
+        '<i style="background:' + getColor(mag[i] + 1) + '"></i> ' +
+        mag[i] + (mag[i + 1] ? '&ndash;' + mag[i + 1] + '<br>' : '+');
+  }
+  
+  return div;
+};
+
+legend.addTo(myMap);
+
 }
 
